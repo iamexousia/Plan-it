@@ -14,6 +14,12 @@ importers:
       '@fontsource/inter':
         specifier: ^5.3.0
         version: 5.3.0
+      '@fontsource/outfit':
+        specifier: 5.3.0
+        version: 5.3.0
+      '@fontsource/pacifico':
+        specifier: 5.3.0
+        version: 5.3.0
       '@fontsource/roboto':
         specifier: 5.2.10
         version: 5.2.10
@@ -89,6 +95,12 @@ packages:
 
   '@fontsource/inter@5.3.0':
     resolution: {integrity: sha512-RofMylZmjlJEfELXeNHFWBRcSs75rGU/6bV2S2jfnvv/3rPXPGe0LgUJTklcHZ9lM4OZmAVFhcJPnACfb91A3g==}
+
+  '@fontsource/outfit@5.3.0':
+    resolution: {integrity: sha512-0AVHzTTVJSxWDOxPKSfMeHhZeBFDU3cmgrcOb76ZEyhGo0+xgyG3GsLF3h9+X8w0IX7G4jzjJgFQEBiWdX6VgA==}
+
+  '@fontsource/pacifico@5.3.0':
+    resolution: {integrity: sha512-bWv0fHR1n36p7scRn+maaEaVeQCOq9yvfVfjyAeUzKrK4Y/3qiRAEj4hJgfxj/sjgZZGkeHyKPrbWdDaZtpCVw==}
 
   '@fontsource/roboto@5.2.10':
     resolution: {integrity: sha512-8HlA5FtSfz//oFSr2eL7GFXAiE7eIkcGOtx7tjsLKq+as702x9+GU7K95iDeWFapHC4M2hv9RrpXKRTGGBI8Zg==}
@@ -977,6 +989,10 @@ snapshots:
   '@fontsource/fraunces@5.3.0': {}
 
   '@fontsource/inter@5.3.0': {}
+
+  '@fontsource/outfit@5.3.0': {}
+
+  '@fontsource/pacifico@5.3.0': {}
 
   '@fontsource/roboto@5.2.10': {}
 
