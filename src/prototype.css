@@ -22,3 +22,18 @@
   .today-shell,.bottom-nav{height:100vh;height:100dvh}
   .today-content,.tab-content{padding-bottom:80px}
 }
+
+.task-sheet-actions{display:grid;gap:10px}
+.delete-task-button{width:100%;min-height:46px;border:1px solid #e8cfd4;border-radius:13px;background:#fff;color:#a33b4b;font-weight:600}
+.delete-task-button:hover{background:#fff5f6}
+.delete-task-button.armed{border-color:#b73147;background:#b73147;color:#fff}
+
+/* Typography experiment: Pacifico display titles with Outfit UI copy. */
+body,.app-screen,.today-shell,.bottom-sheet{font-family:Outfit,ui-sans-serif,system-ui,sans-serif}
+.wordmark-logo{display:block;width:132px;height:auto;object-fit:contain}
+.onboarding-copy h1,.greeting-preview strong,.today-header h1,.tab-overlay h2,.screen-header h1,.empty-state h2,.calendar-toolbar strong,.sheet-title{font-family:Pacifico,cursive;font-weight:400;letter-spacing:0}
+.onboarding-copy h1{line-height:1.18}
+.today-header h1{line-height:1.15}
+.screen-header h1{line-height:1.22}
+.bottom-nav:before{font-family:Pacifico,cursive;font-weight:400;letter-spacing:0}
+@media(min-width:768px){.wordmark-logo{width:152px}}
