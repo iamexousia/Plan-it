@@ -9,14 +9,6 @@ import { BottomSheet, KeyboardInput, MobileScroll, useKeyboard } from "./web";
 type Subtask = { id:string; title:string; completed:boolean };
 type TaskList = "Personal"|"Work"|"Shopping";
 type Task = { id:string; title:string; notes?:string; time?:string; date?:string; list?:TaskList; subtasks?:Subtask[]; progress:number; completed:boolean; section:"scheduled"|"anytime" };
-const seedTasks: Task[] = [
-  { id:"proposal", title:"Finish project proposal", notes:"Write final draft and send for review", time:"9:30", progress:65, completed:false, section:"scheduled" },
-  { id:"dentist", title:"Dentist appointment", notes:"Riverside Dental Clinic", time:"14:00", progress:0, completed:false, section:"scheduled" },
-  { id:"groceries", title:"Buy groceries", notes:"Milk, eggs, fruit, vegetables", progress:0, completed:false, section:"anytime" },
-  { id:"budget", title:"Plan October budget", notes:"Review expenses and set goals", progress:60, completed:false, section:"anytime" },
-  { id:"plants", title:"Water the plants", progress:100, completed:true, section:"anytime" },
-  { id:"email", title:"Reply to Jo", progress:100, completed:true, section:"anytime" },
-];
 const DB_NAME="plan-it-v2", STORE="tasks";
 function openDb(){ return new Promise<IDBDatabase>((resolve,reject)=>{ const request=indexedDB.open(DB_NAME,1); request.onupgradeneeded=()=>request.result.createObjectStore(STORE,{keyPath:"id"}); request.onsuccess=()=>resolve(request.result); request.onerror=()=>reject(request.error); }); }
 async function loadTasks(){ const db=await openDb(); return new Promise<Task[]>((resolve,reject)=>{ const request=db.transaction(STORE).objectStore(STORE).getAll(); request.onsuccess=()=>resolve(request.result as Task[]); request.onerror=()=>reject(request.error); }); }
@@ -26,15 +18,17 @@ function formatLongDate(value:string){ return new Intl.DateTimeFormat("en-US",{w
 function weekFor(value:string){ const selected=new Date(`${value}T12:00:00`); const sunday=new Date(selected); sunday.setDate(selected.getDate()-selected.getDay()); return Array.from({length:7},(_,index)=>{const date=new Date(sunday);date.setDate(sunday.getDate()+index);return {iso:toLocalIso(date),day:new Intl.DateTimeFormat("en-US",{weekday:"short"}).format(date),number:String(date.getDate())};}); }
 function monthDays(value:Date){ const year=value.getFullYear(),month=value.getMonth(),firstDay=new Date(year,month,1).getDay(),days=new Date(year,month+1,0).getDate(); return [...Array.from({length:firstDay},()=>null),...Array.from({length:days},(_,index)=>{const date=new Date(year,month,index+1,12);return {iso:toLocalIso(date),number:index+1};})]; }
 function taskList(task:Task):TaskList{ if(task.list)return task.list; if(task.id==="groceries")return "Shopping"; if(task.id==="proposal"||task.id==="budget")return "Work"; return "Personal"; }
+function greetingFor(date=new Date()){ const hour=date.getHours(); return hour<12?"Good morning":hour<17?"Good afternoon":"Good evening"; }
+function useGreeting(){ const [greeting,setGreeting]=useState(()=>greetingFor()); useEffect(()=>{const timer=window.setInterval(()=>setGreeting(greetingFor()),60_000);return()=>window.clearInterval(timer);},[]); return greeting; }
 
 function Onboarding({onComplete}:{onComplete:(name:string)=>void}){
-  const [name,setName]=useState("Maya"); const keyboard=useKeyboard();
+  const [name,setName]=useState(""); const keyboard=useKeyboard(); const greeting=useGreeting();
   const finish=(value:string)=>{(document.activeElement as HTMLElement|null)?.blur();keyboard.hide();onComplete(value);};
   return <MobileScroll className="app-screen onboarding-scroll"><main className="onboarding" aria-label="Plan-it onboarding">
     <header className="onboarding-top"><div className="wordmark">Plan-it<span>.</span></div><div className="stepper"><span>1 of 3</span><i className="active"/><i/><i/></div></header>
     <section className="onboarding-copy"><h1>Let’s make<br/>it yours</h1><p>What should we call you?</p></section>
     <label className="name-field"><span>First name</span><KeyboardInput value={name} onChange={(event)=>setName(event.target.value)} aria-label="First name"/></label>
-    <div className="greeting-preview"><span>Your home will say:</span><strong>Good morning, {name||"there"}</strong></div>
+    <div className="greeting-preview"><span>Your home will say:</span><strong>{greeting}, {name.trim()||"there"}</strong></div>
     <div className="onboarding-actions"><button className="primary-button" onClick={()=>finish(name.trim()||"there")}>Continue</button><button className="text-button" onClick={()=>finish("there")}>Skip for now</button></div>
     <p className="offline-note"><CheckCircledIcon/> Your preferences are saved on this device.</p>
   </main></MobileScroll>;
@@ -68,8 +62,8 @@ function SettingsView({name,defaultList,tasks,onSave}:{name:string;defaultList:T
 }
 
 function TodayScreen({name,onNameChange}:{name:string;onNameChange:(name:string)=>void}){
-  const today=toLocalIso(new Date()); const keyboard=useKeyboard(); const [tasks,setTasks]=useState<Task[]>(seedTasks); const [loaded,setLoaded]=useState(false); const [draft,setDraft]=useState(""); const [newTaskTime,setNewTaskTime]=useState(""); const [defaultList,setDefaultList]=useState<TaskList>(()=>(localStorage.getItem("plan-it-default-list") as TaskList)||"Personal"); const [newTaskList,setNewTaskList]=useState<TaskList>(defaultList); const [subtaskDraft,setSubtaskDraft]=useState(""); const [newSubtasks,setNewSubtasks]=useState<Subtask[]>([]); const [addOpen,setAddOpen]=useState(false); const [calendarOpen,setCalendarOpen]=useState(false); const [calendarMonth,setCalendarMonth]=useState(()=>new Date(`${today}T12:00:00`)); const [sheetOpen,setSheetOpen]=useState(false); const [activeTask,setActiveTask]=useState<Task|null>(null); const [selectedDate,setSelectedDate]=useState(today); const [tab,setTab]=useState("Today"); const [completedOpen,setCompletedOpen]=useState(false);
-  useEffect(()=>{loadTasks().then((stored)=>setTasks(stored.length?stored:seedTasks)).finally(()=>setLoaded(true));},[]);
+  const today=toLocalIso(new Date()); const keyboard=useKeyboard(); const greeting=useGreeting(); const [tasks,setTasks]=useState<Task[]>([]); const [loaded,setLoaded]=useState(false); const [draft,setDraft]=useState(""); const [newTaskTime,setNewTaskTime]=useState(""); const [defaultList,setDefaultList]=useState<TaskList>(()=>(localStorage.getItem("plan-it-default-list") as TaskList)||"Personal"); const [newTaskList,setNewTaskList]=useState<TaskList>(defaultList); const [subtaskDraft,setSubtaskDraft]=useState(""); const [newSubtasks,setNewSubtasks]=useState<Subtask[]>([]); const [addOpen,setAddOpen]=useState(false); const [calendarOpen,setCalendarOpen]=useState(false); const [calendarMonth,setCalendarMonth]=useState(()=>new Date(`${today}T12:00:00`)); const [sheetOpen,setSheetOpen]=useState(false); const [activeTask,setActiveTask]=useState<Task|null>(null); const [selectedDate,setSelectedDate]=useState(today); const [tab,setTab]=useState("Today"); const [completedOpen,setCompletedOpen]=useState(false);
+  useEffect(()=>{loadTasks().then(setTasks).finally(()=>setLoaded(true));},[]);
   useEffect(()=>{if(loaded) void saveTasks(tasks);},[tasks,loaded]);
   const datedTasks=useMemo(()=>tasks.filter((task)=>(task.date??today)===selectedDate),[tasks,selectedDate,today]); const active=datedTasks.filter((task)=>!task.completed); const complete=datedTasks.filter((task)=>task.completed); const scheduled=active.filter((task)=>task.section==="scheduled").sort((a,b)=>Number((a.time??"0").replace(":",""))-Number((b.time??"0").replace(":",""))); const anytimeOrder=new Map([["groceries",0],["budget",1]]); const anytime=active.filter((task)=>task.section==="anytime").sort((a,b)=>(anytimeOrder.get(a.id)??99)-(anytimeOrder.get(b.id)??99)); const week=weekFor(selectedDate);
   const beginAdd=()=>{if(!draft.trim())return;(document.activeElement as HTMLElement|null)?.blur();keyboard.hide();setAddOpen(true);};
@@ -83,7 +77,7 @@ function TodayScreen({name,onNameChange}:{name:string;onNameChange:(name:string)
   const toggleSubtask=(subtaskId:string)=>{if(!activeTask)return;const update=(task:Task)=>{const subtasks=(task.subtasks??[]).map((item)=>item.id===subtaskId?{...item,completed:!item.completed}:item);const completeCount=subtasks.filter((item)=>item.completed).length;const progress=subtasks.length?Math.round(completeCount/subtasks.length*100):task.progress;return {...task,subtasks,progress,completed:progress===100};};setTasks((current)=>current.map((task)=>task.id===activeTask.id?update(task):task));setActiveTask((task)=>task?update(task):null);};
   const openTask=(task:Task)=>{(document.activeElement as HTMLElement|null)?.blur();keyboard.hide();setActiveTask(task);setSheetOpen(true);};
   return <div className="today-shell">{tab==="Today"&&<MobileScroll className="app-screen today-scroll"><main className="today-content" aria-label="Plan-it Today">
-    <header className="today-header"><div><p>Good morning, {name}</p><h1>{selectedDate===today?"Today":"Schedule"}</h1><time>{formatLongDate(selectedDate)}</time></div><span className="save-state"><CheckCircledIcon/> Saved offline</span></header>
+    <header className="today-header"><div><p>{greeting}, {name}</p><h1>{selectedDate===today?"Today":"Schedule"}</h1><time>{formatLongDate(selectedDate)}</time></div><span className="save-state"><CheckCircledIcon/> Saved offline</span></header>
     <form className="quick-add" onSubmit={(event)=>{event.preventDefault();beginAdd();}}><KeyboardInput value={draft} onChange={(event)=>setDraft(event.target.value)} placeholder="Add a task…" aria-label="Add a task"/><button type="submit" aria-label="Continue adding task"><PlusIcon/></button></form>
     <div className="week-strip" aria-label={`Week containing ${formatLongDate(selectedDate)}`}>{week.map(({iso,day,number})=><button key={iso} className={iso===selectedDate?"selected":""} onClick={()=>selectDate(iso)} aria-pressed={iso===selectedDate} disabled={iso<today}><span>{day}</span><b>{number}</b></button>)}</div>
     <button className="full-calendar-button" onClick={openCalendar}><CalendarIcon/><span>Full calendar</span><ChevronRightIcon/></button>
