@@ -22,22 +22,22 @@ pnpm install --frozen-lockfile
 pnpm dev
 ```
 
-Run the production verification used by Vercel:
+Run the production verification used by Netlify:
 
 ```bash
-pnpm run build:vercel
+pnpm run build:netlify
 ```
 
-## Deploy with GitHub and Vercel
+## Deploy with GitHub and Netlify
 
 1. Create an empty GitHub repository.
 2. Push this project’s `main` branch to it.
-3. In Vercel, select **Add New → Project** and import the GitHub repository.
-4. Deploy with the settings detected from `vercel.json`.
+3. In Netlify, select **Add new project → Import an existing project** and choose the GitHub repository.
+4. Deploy with the settings detected from `netlify.toml`.
 
-No environment variables are required. Vercel installs with pnpm, runs `pnpm run build:vercel`, and serves `dist/client`.
+No environment variables are required. Netlify installs with pnpm, runs `pnpm run build:netlify`, and serves `dist/client`.
 
-See [VERCEL_DEPLOYMENT.md](./VERCEL_DEPLOYMENT.md) for post-deployment PWA checks.
+See [NETLIFY_DEPLOYMENT.md](./NETLIFY_DEPLOYMENT.md) for deployment steps and post-deployment PWA checks.
 
 ## Data and privacy
 
