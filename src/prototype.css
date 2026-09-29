@@ -37,3 +37,26 @@ body,.app-screen,.today-shell,.bottom-sheet{font-family:Outfit,ui-sans-serif,sys
 .screen-header h1{line-height:1.22}
 .bottom-nav:before{font-family:Pacifico,cursive;font-weight:400;letter-spacing:0}
 @media(min-width:768px){.wordmark-logo{width:152px}}
+
+/* Navigation and task-creation workflow. */
+.bottom-nav{grid-template-columns:repeat(4,1fr)}
+.new-task-button{width:56px;height:56px;margin:24px 0 0 auto;padding:0;border:0;border-radius:50%;background:var(--purple);color:#fff;display:grid;place-items:center;box-shadow:0 10px 24px rgba(114,87,217,.24)}
+.new-task-button svg{width:24px;height:24px}
+.add-task-sheet input[type=date]{color-scheme:light}
+.backlog-group>header{background:#fff1f3}
+.backlog-group>header span{color:#a33b4b}
+.reminder-card{padding:13px;border:1px solid var(--line);border-radius:13px;background:#faf8fd;display:grid;gap:12px}
+.reminder-card>div{display:flex;align-items:center;gap:10px}
+.reminder-icon{width:36px;height:36px;border-radius:11px;background:#eee8ff;color:var(--purple);display:grid;place-items:center}
+.reminder-card>div>span:nth-child(2){flex:1;display:grid;gap:2px}
+.reminder-card strong{font-size:14px}
+.reminder-card small,.reminder-card p{color:var(--muted);font-size:11px}
+.reminder-card p{margin:0;line-height:1.4}
+.reminder-toggle{min-width:48px;min-height:32px;border:1px solid var(--line);border-radius:999px;background:#fff;color:var(--muted);font-size:12px;font-weight:600}
+.reminder-toggle:disabled{opacity:.45;cursor:not-allowed}
+.reminder-card.enabled{border-color:#cfc3fb;background:#f7f3ff}
+.reminder-card.enabled .reminder-toggle{border-color:var(--purple);background:var(--purple);color:#fff}
+.reminder-card>label{display:grid;gap:6px}
+.reminder-card>label>span{color:var(--muted);font-size:12px;font-weight:600}
+.reminder-card select{width:100%;min-height:44px;padding:0 11px;border:1px solid var(--line);border-radius:10px;background:#fff;color:var(--plum);outline:none}
+.task-reminder-summary{margin-bottom:16px;padding:11px 12px;border-radius:11px;background:#f7f3ff;color:var(--purple);display:flex;align-items:center;gap:8px;font-size:13px;font-weight:600}
