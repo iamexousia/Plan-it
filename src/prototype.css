@@ -39,9 +39,7 @@ body,.app-screen,.today-shell,.bottom-sheet{font-family:Outfit,ui-sans-serif,sys
 @media(min-width:768px){.wordmark-logo{width:152px}}
 
 /* Navigation and task-creation workflow. */
-.bottom-nav{grid-template-columns:repeat(4,1fr)}
-.new-task-button{width:56px;height:56px;margin:24px 0 0 auto;padding:0;border:0;border-radius:50%;background:var(--purple);color:#fff;display:grid;place-items:center;box-shadow:0 10px 24px rgba(114,87,217,.24)}
-.new-task-button svg{width:24px;height:24px}
+.bottom-nav{grid-template-columns:repeat(5,1fr)}
 .add-task-sheet input[type=date]{color-scheme:light}
 .backlog-group>header{background:#fff1f3}
 .backlog-group>header span{color:#a33b4b}
@@ -81,3 +79,15 @@ body,.app-screen,.today-shell,.bottom-sheet{font-family:Outfit,ui-sans-serif,sys
 
 .bottom-nav{background:var(--lilac)}
 .bottom-nav button.active{background:transparent}
+.bottom-nav svg{width:24px;height:24px}
+.nav-add-task{position:relative}
+.nav-add-icon{width:54px;height:54px;margin-top:-26px;border:4px solid var(--bg);border-radius:50%;background:var(--purple);color:#fff;display:grid;place-items:center;box-shadow:0 8px 20px rgba(114,87,217,.28)}
+.nav-add-icon svg{width:26px;height:26px}
+.nav-add-label{margin-top:-1px}
+@media(max-width:767px){.bottom-nav{left:0;right:0;width:100%;min-height:88px;padding:14px 8px calc(14px + env(safe-area-inset-bottom,0px));border-radius:22px 22px 0 0;box-shadow:none}.bottom-nav button{justify-content:flex-end}.bottom-nav svg{width:24px;height:24px}.today-content,.tab-content{padding-bottom:calc(118px + env(safe-area-inset-bottom,0px))}}
+@media(min-width:768px){.nav-add-task{margin:10px 0 6px}.nav-add-icon{width:40px;height:40px;margin:0;border:0;border-radius:12px;box-shadow:none}.nav-add-icon svg{width:22px;height:22px}.nav-add-label{margin:0}}
+.today-header+.full-calendar-button{margin-top:28px}
+.today-content>.full-calendar-button{margin-bottom:10px}
+.today-content>.week-strip{display:flex;grid-template-columns:none;gap:6px;margin:0 -3px 18px;padding:0 3px 4px;overflow-x:auto;scrollbar-width:none;overscroll-behavior-x:contain}
+.today-content>.week-strip::-webkit-scrollbar{display:none}
+.today-content>.week-strip button{flex:0 0 48px;width:48px}
