@@ -11,9 +11,9 @@
     "predev": "npm run check:runtime",
     "dev": "vite",
     "prebuild": "npm run check:runtime",
-    "build": "tsc && vite build && node scripts/prepare-sites-build.mjs",
-    "build:vercel": "node scripts/check-mobile-runtime.mjs && tsc && vite build",
-    "build:netlify": "node scripts/check-mobile-runtime.mjs && tsc && vite build"
+    "build": "tsc && vite build && node scripts/stamp-pwa-version.mjs && node scripts/prepare-sites-build.mjs",
+    "build:vercel": "node scripts/check-mobile-runtime.mjs && tsc && vite build && node scripts/stamp-pwa-version.mjs",
+    "build:netlify": "node scripts/check-mobile-runtime.mjs && tsc && vite build && node scripts/stamp-pwa-version.mjs"
   },
   "packageManager": "pnpm@11.25.0",
   "engines": {
