@@ -30,6 +30,8 @@ function priorityLabel(priority?:Priority){ return priority?`${priority[0].toUpp
 function formatFocusTime(seconds=0){ const hours=Math.floor(seconds/3600),minutes=Math.floor(seconds%3600/60); return hours?`${hours}h ${minutes}m`:`${minutes} min`; }
 function weekDates(anchor:Date){ const start=new Date(anchor);start.setHours(12,0,0,0);start.setDate(start.getDate()-start.getDay());return Array.from({length:7},(_,index)=>{const day=new Date(start);day.setDate(start.getDate()+index);return day;}); }
 function loadFocusState(){ try{const value=JSON.parse(localStorage.getItem("plan-it-active-focus")||"null") as {taskId?:string;seconds?:number;running?:boolean;startedAt?:number|null}|null;return {taskId:value?.taskId??null,seconds:value?.seconds??0,running:value?.running??false,startedAt:value?.startedAt??null};}catch{return {taskId:null,seconds:0,running:false,startedAt:null};} }
+type FocusAction={action:string;taskId?:string;at:number};
+async function takeFocusActions(){return new Promise<FocusAction[]>((resolve,reject)=>{const request=indexedDB.open("plan-it-focus-actions",1);request.onupgradeneeded=()=>request.result.createObjectStore("actions",{autoIncrement:true});request.onerror=()=>reject(request.error);request.onsuccess=()=>{const db=request.result,tx=db.transaction("actions","readwrite"),store=tx.objectStore("actions"),read=store.getAll();let actions:FocusAction[]=[];read.onsuccess=()=>{actions=read.result;store.clear();};tx.oncomplete=()=>{db.close();resolve(actions);};tx.onerror=()=>{db.close();reject(tx.error);};};});}
 
 function Onboarding({onComplete}:{onComplete:(name:string)=>void}){
   const [name,setName]=useState(""); const keyboard=useKeyboard(); const greeting=useGreeting();
@@ -103,7 +105,38 @@ function TodayScreen({name,onNameChange,canInstall,installed,onInstall}:{name:st
   const toggleFocus=()=>{if(focusRunning){const elapsed=focusStartedAt?Math.floor((Date.now()-focusStartedAt)/1000):focusSeconds;setFocusSeconds(elapsed);setFocusStartedAt(null);setFocusRunning(false);}else{setFocusStartedAt(Date.now()-focusSeconds*1000);setFocusRunning(true);}};
   const finishFocus=()=>{if(!focusTaskId)return;const elapsed=focusRunning&&focusStartedAt?Math.floor((Date.now()-focusStartedAt)/1000):focusSeconds;setTasks((current)=>current.map((task)=>task.id===focusTaskId?{...task,focusSeconds:(task.focusSeconds??0)+elapsed,focusSessions:(task.focusSessions??0)+1}:task));setFocusRunning(false);setFocusStartedAt(null);setFocusSeconds(0);setFocusVisible(false);setFocusTaskId(null);};
   const deleteTask=()=>{if(!activeTask)return;if(!deleteArmed){setDeleteArmed(true);return;}setTasks((current)=>current.filter((task)=>task.id!==activeTask.id));setSheetOpen(false);setActiveTask(null);setDeleteArmed(false);};
-  useEffect(()=>{if(!("serviceWorker" in navigator))return;const applyAction=(action:string)=>{if(action==="pause"&&focusRunning)toggleFocus();else if(action==="resume"&&!focusRunning)toggleFocus();else if(action==="stop")finishFocus();else if(action==="open")setFocusVisible(true);};const receive=(event:MessageEvent)=>{if(event.data?.type==="FOCUS_ACTION")applyAction(event.data.action);};navigator.serviceWorker.addEventListener("message",receive);const url=new URL(window.location.href);const queued=url.searchParams.get("focusAction");if(queued){applyAction(queued);url.searchParams.delete("focusAction");window.history.replaceState({},"",url);}return()=>navigator.serviceWorker.removeEventListener("message",receive);},[focusTaskId,focusRunning,focusStartedAt,focusSeconds]);
+  useEffect(()=>{
+    if(!loaded||!("serviceWorker" in navigator))return;
+    let pending=Promise.resolve();
+    const sync=(open=false)=>{pending=pending.then(async()=>{
+      const actions=await takeFocusActions();let state=loadFocusState();
+      let show=open;
+      for(const item of actions){
+        if(item.taskId&&item.taskId!==state.taskId)continue;
+        if(item.action==="open"){show=true;continue;}
+        if(!state.taskId)continue;
+        if(item.action==="pause"&&state.running){state={...state,seconds:state.startedAt?Math.max(0,Math.floor((item.at-state.startedAt)/1000)):state.seconds,running:false,startedAt:null};}
+        else if(item.action==="resume"&&!state.running){state={...state,running:true,startedAt:item.at-state.seconds*1000};}
+        else if(item.action==="stop"){
+          const id=state.taskId,elapsed=state.running&&state.startedAt?Math.max(0,Math.floor((item.at-state.startedAt)/1000)):state.seconds;
+          setTasks(current=>current.map(task=>task.id===id?{...task,focusSeconds:(task.focusSeconds??0)+elapsed,focusSessions:(task.focusSessions??0)+1}:task));
+          state={taskId:null,seconds:0,running:false,startedAt:null};
+        }
+      }
+      if(actions.length){
+        if(state.taskId)localStorage.setItem("plan-it-active-focus",JSON.stringify(state));else localStorage.removeItem("plan-it-active-focus");
+        setFocusTaskId(state.taskId);setFocusSeconds(state.seconds);setFocusRunning(state.running);setFocusStartedAt(state.startedAt);
+        if(!state.taskId)setFocusVisible(false);
+      }
+      if(show&&state.taskId){keyboard.hide();setSheetOpen(false);setAddOpen(false);setCalendarOpen(false);setNotificationOpen(false);setFocusVisible(true);}
+    }).catch(error=>console.error("Unable to apply focus notification action",error));};
+    const receive=(event:MessageEvent)=>{if(event.data?.type==="FOCUS_ACTION")sync(event.data.action==="open");};
+    const wake=()=>{if(document.visibilityState==="visible")sync();};
+    navigator.serviceWorker.addEventListener("message",receive);document.addEventListener("visibilitychange",wake);window.addEventListener("focus",wake);
+    const url=new URL(window.location.href),queued=url.searchParams.get("focusAction");sync(queued==="open");
+    if(queued){url.searchParams.delete("focusAction");window.history.replaceState({},"",url);}
+    return()=>{navigator.serviceWorker.removeEventListener("message",receive);document.removeEventListener("visibilitychange",wake);window.removeEventListener("focus",wake);};
+  },[loaded]);
   return <div className="today-shell">{tab==="Today"&&<MobileScroll className="app-screen today-scroll"><main className="today-content" aria-label="Plan-it Today">
     <header className="today-header"><div><p>{greeting}, {name}</p><h1>{selectedDate===today?"Today":"Schedule"}</h1><time>{formatLongDate(selectedDate)}</time></div><div className="header-actions">{canInstall?<button className="install-state" onClick={()=>void onInstall()}><DownloadIcon/> Install Plan-it</button>:!installed&&<span className="save-state"><CheckCircledIcon/> Saved offline</span>}<button className="notification-button" onClick={()=>setNotificationOpen(true)} aria-label={`Notifications${notices.length?` (${notices.length})`:""}`}><BellIcon/>{notices.length>0&&<b>{notices.length>9?"9+":notices.length}</b>}</button></div></header>
     <button className="full-calendar-button" onClick={openCalendar}><CalendarIcon/><span>Full calendar</span><ChevronRightIcon/></button>
@@ -137,4 +170,19 @@ function TodayScreen({name,onNameChange,canInstall,installed,onInstall}:{name:st
   {focusTaskId&&focusVisible&&tasks.find((task)=>task.id===focusTaskId)&&<FocusOverlay task={tasks.find((task)=>task.id===focusTaskId)!} seconds={focusSeconds} running={focusRunning} onToggle={toggleFocus} onFinish={finishFocus} onClose={()=>setFocusVisible(false)}/>} 
   </div>;
 }
-export default function Prototype(){ const [name,setName]=useState(()=>localStorage.getItem("plan-it-name")||""); const pwa=usePwaInstall(); useEffect(()=>{if("serviceWorker" in navigator)void navigator.serviceWorker.register("/sw.js"); if(navigator.storage?.persist)void navigator.storage.persist();},[]); const finish=(nextName:string)=>{localStorage.setItem("plan-it-name",nextName);setName(nextName);}; return name?<TodayScreen name={name} onNameChange={setName} canInstall={pwa.canInstall} installed={pwa.installed} onInstall={pwa.install}/>:<Onboarding onComplete={finish}/>; }
+function UpdateToast(){
+  const [waiting,setWaiting]=useState<ServiceWorker|null>(null),[refreshing,setRefreshing]=useState(false),[dismissed,setDismissed]=useState(false);
+  useEffect(()=>{
+    if(!("serviceWorker" in navigator))return;
+    let registration:ServiceWorkerRegistration|undefined,disposed=false;
+    const ready=()=>{if(!disposed&&registration?.waiting&&navigator.serviceWorker.controller){setWaiting(registration.waiting);setDismissed(false);}};
+    const found=()=>{const worker=registration?.installing;if(worker)worker.addEventListener("statechange",()=>{if(worker.state==="installed")ready();});};
+    const check=()=>{if(document.visibilityState==="visible"&&navigator.onLine)void registration?.update().catch(()=>undefined);};
+    void navigator.serviceWorker.register("/sw.js",{updateViaCache:"none"}).then(value=>{if(disposed)return;registration=value;ready();found();registration.addEventListener("updatefound",found);check();}).catch(()=>undefined);
+    const timer=window.setInterval(check,60_000);window.addEventListener("online",check);document.addEventListener("visibilitychange",check);
+    return()=>{disposed=true;window.clearInterval(timer);window.removeEventListener("online",check);document.removeEventListener("visibilitychange",check);registration?.removeEventListener("updatefound",found);};
+  },[]);
+  const refresh=()=>{if(!waiting||refreshing)return;setRefreshing(true);navigator.serviceWorker.addEventListener("controllerchange",()=>window.location.reload(),{once:true});waiting.postMessage({type:"SKIP_WAITING"});};
+  return waiting&&!dismissed?<aside className="update-toast" role="status" aria-live="polite"><span><strong>Update available</strong><small>A new version of Plan-it is ready. Refresh to update.</small></span><button onClick={refresh} disabled={refreshing}>{refreshing?"Refreshing…":"Refresh"}</button><button className="update-toast-dismiss" aria-label="Dismiss update notification" onClick={()=>setDismissed(true)} disabled={refreshing}><Cross2Icon/></button></aside>:null;
+}
+export default function Prototype(){ const [name,setName]=useState(()=>localStorage.getItem("plan-it-name")||""); const pwa=usePwaInstall(); useEffect(()=>{if(navigator.storage?.persist)void navigator.storage.persist();},[]); const finish=(nextName:string)=>{localStorage.setItem("plan-it-name",nextName);setName(nextName);}; return <>{name?<TodayScreen name={name} onNameChange={setName} canInstall={pwa.canInstall} installed={pwa.installed} onInstall={pwa.install}/>:<Onboarding onComplete={finish}/>}<UpdateToast/></>; }
