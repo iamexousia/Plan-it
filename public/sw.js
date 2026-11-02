@@ -12,7 +12,13 @@ self.addEventListener("notificationclick",event=>{
     const isFocus=notification.tag==="plan-it-focus";
     if(isFocus){
       await queueFocusAction(action,notification.data?.taskId);
-      if(action==="pause"||action==="resume")await self.registration.showNotification(notification.title,{body:action==="pause"?"Timer paused · Resume when you’re ready.":"Timer running · Use the controls below to pause or stop.",icon:notification.icon,badge:notification.badge,tag:notification.tag,silent:true,requireInteraction:true,data:notification.data,actions:[{action:action==="pause"?"resume":"pause",title:action==="pause"?"Resume":"Pause"},{action:"stop",title:"Stop"}]});
+      if(action==="pause"||action==="resume"){
+        const previous=notification.data||{},now=Date.now();
+        const seconds=action==="pause"&&previous.startedAt?Math.max(0,Math.floor((now-previous.startedAt)/1000)):(previous.seconds||0);
+        const data={...previous,seconds,startedAt:action==="resume"?now-seconds*1000:null};
+        const format=value=>`${String(Math.floor(value/60)).padStart(2,"0")}:${String(value%60).padStart(2,"0")}`;
+        await self.registration.showNotification(notification.title,{body:`${format(seconds)}${data.targetMinutes?` / ${format(data.targetMinutes*60)}`:""} · ${action==="pause"?"Paused":"Running"}`,icon:notification.icon,badge:notification.badge,tag:notification.tag,silent:true,requireInteraction:true,data,actions:[{action:action==="pause"?"resume":"pause",title:action==="pause"?"Resume":"Pause"},{action:"stop",title:"Stop"}]});
+      }
     }
     const windows=(await self.clients.matchAll({type:"window",includeUncontrolled:true})).filter(client=>client.url.startsWith(self.registration.scope));
     const existing=windows.find(client=>client.focused)||windows.find(client=>client.visibilityState==="visible")||windows[0];
